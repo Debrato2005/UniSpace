@@ -1,4 +1,4 @@
-# UniSpace: AcWeb-Based Classroom Booking and Scheduling System
+# UniSpace: A Web-Based Classroom Booking and Scheduling System
 
 ## With Conflict Detection and Periodic Reservation Support
 
