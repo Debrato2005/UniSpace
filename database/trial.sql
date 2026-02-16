@@ -6,5 +6,4 @@ SELECT * FROM Department;
 
 SELECT * FROM COURSE;
 
-
 SELECT * FROM booking;
