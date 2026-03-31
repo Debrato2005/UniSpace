@@ -27,3 +27,8 @@ Thumbs.db
 *.sql.backup
 
 dependency-reduced-pom.xml
+
+node_modules/
+
+logs/
+*.tmp
