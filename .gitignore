@@ -1,34 +1,39 @@
+# Build
+target/
+build/
+bin/
+.gradle/
+
 *.class
 *.jar
 *.war
 *.ear
-bin/
-build/
-target/
-.gradle/
 
+# Environment / Config
 .env
 .env.*
-src/db.properties
 application.properties
 application.yml
+src/db.properties
 
+# IDE
 .idea/
 .vscode/
 *.iml
 
+# Logs
 *.log
+logs/
 
+# OS
 Thumbs.db
 .DS_Store
 
+# DB backups
 *.dump
 *.backup
 *.sql.backup
 
-dependency-reduced-pom.xml
-
-node_modules/
-
-logs/
+# Misc
 *.tmp
+dependency-reduced-pom.xml
