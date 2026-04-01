@@ -1,17 +1,40 @@
 package com.unispace.model;
 
-public class Instructor {
+import java.io.Serializable;
+
+public class Instructor implements Serializable {
+
+    private static final long serialVersionUID = 1L;
+
     private String id;
     private String name;
     private String deptName;
 
-    // --- Getters ---
-    public String getId()       { return id; }
-    public String getName()     { return name; }
+    // ================= GETTERS =================
+    public String getId() { return id; }
+    public String getName() { return name; }
     public String getDeptName() { return deptName; }
 
-    // --- Setters ---
-    public void setId(String id)           { this.id = id; }
-    public void setName(String name)       { this.name = name; }
-    public void setDeptName(String dept)   { this.deptName = dept; }
+    // ================= SETTERS =================
+    public void setId(String id) {
+        this.id = id != null ? id.trim() : null;
+    }
+
+    public void setName(String name) {
+        this.name = name != null ? name.trim() : null;
+    }
+
+    public void setDeptName(String deptName) {
+        this.deptName = deptName != null ? deptName.trim() : null;
+    }
+
+    // ================= DEBUG =================
+    @Override
+    public String toString() {
+        return "Instructor{" +
+                "id='" + id + '\'' +
+                ", name='" + name + '\'' +
+                ", deptName='" + deptName + '\'' +
+                '}';
+    }
 }
