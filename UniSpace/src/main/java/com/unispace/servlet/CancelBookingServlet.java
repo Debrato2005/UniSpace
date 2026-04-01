@@ -11,66 +11,82 @@ import java.sql.Date;
 @WebServlet("/CancelBookingServlet")
 public class CancelBookingServlet extends HttpServlet {
 
-    // POST — handles both full cancellation and single-lecture cancellation
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
 
-        // Guard: must be logged in
-        if (!isLoggedIn(req)) {
-            resp.sendRedirect("login.jsp");
+        HttpSession session = req.getSession(false);
+
+        // ================= AUTH =================
+        if (session == null || session.getAttribute("instId") == null) {
+            resp.sendRedirect(req.getContextPath() + "/login.jsp");
             return;
         }
 
-        String cancelType = req.getParameter("cancelType");
-        // cancelType = "FULL"    → cancel the entire booking
-        // cancelType = "SINGLE"  → cancel one specific date (periodic booking)
+        String instId = (String) session.getAttribute("instId");
 
         String bookingIdStr = req.getParameter("bookingId");
-        if (bookingIdStr == null || bookingIdStr.isEmpty()) {
-            resp.sendRedirect("bookings.jsp?msg=Invalid+booking+ID");
+        String actionType = req.getParameter("type");
+
+        if (bookingIdStr == null || bookingIdStr.trim().isEmpty()) {
+            resp.sendRedirect(req.getContextPath() +
+                    "/BookingServlet?action=myBookings&error=InvalidRequest");
             return;
         }
 
-        int    bookingId  = Integer.parseInt(bookingIdStr);
-        String changedBy  = (String) req.getSession().getAttribute("instId");
-        BookingDAO dao    = new BookingDAO();
+        BookingDAO dao = new BookingDAO();
 
-        if ("FULL".equals(cancelType)) {
-            // Cancel the entire booking
-            boolean success = dao.cancelBooking(bookingId, changedBy);
-            if (success) {
-                resp.sendRedirect("bookings.jsp?msg=Booking+cancelled+successfully");
+        try {
+            int bookingId = Integer.parseInt(bookingIdStr.trim());
+            boolean success;
+
+            // ================= SINGLE DAY CANCEL =================
+            if ("single".equalsIgnoreCase(actionType)) {
+
+                String dateStr = req.getParameter("date");
+                String reason = req.getParameter("reason");
+
+                if (dateStr == null || dateStr.trim().isEmpty()
+                        || reason == null || reason.trim().isEmpty()) {
+
+                    resp.sendRedirect(req.getContextPath() +
+                            "/BookingServlet?action=myBookings&error=InvalidInput");
+                    return;
+                }
+
+                Date date = Date.valueOf(dateStr.trim());
+
+                success = dao.cancelSpecificLecture(
+                        bookingId,
+                        date,
+                        reason.trim()
+                );
+
+            } else if ("full".equalsIgnoreCase(actionType) || actionType == null) {
+
+                // default = full cancel
+                success = dao.cancelBooking(bookingId, instId);
+
             } else {
-                resp.sendRedirect("bookings.jsp?msg=Cancellation+failed.+Booking+may+not+exist.");
-            }
-
-        } else if ("SINGLE".equals(cancelType)) {
-            // Cancel one specific date within a periodic booking
-            String dateStr = req.getParameter("cancelDate");
-            String reason  = req.getParameter("reason");
-
-            if (dateStr == null || dateStr.isEmpty()) {
-                resp.sendRedirect("bookings.jsp?msg=Please+provide+a+date+to+cancel");
+                // invalid type
+                resp.sendRedirect(req.getContextPath() +
+                        "/BookingServlet?action=myBookings&error=InvalidType");
                 return;
             }
 
-            Date cancelDate = Date.valueOf(dateStr); // expects yyyy-MM-dd format
-            boolean success = dao.cancelSpecificLecture(bookingId, cancelDate, reason);
-
+            // ================= RESULT =================
             if (success) {
-                resp.sendRedirect("bookings.jsp?msg=Lecture+cancelled+successfully");
+                resp.sendRedirect(req.getContextPath() +
+                        "/BookingServlet?action=myBookings");
             } else {
-                resp.sendRedirect("bookings.jsp?msg=Lecture+cancellation+failed.+Date+may+already+be+cancelled.");
+                resp.sendRedirect(req.getContextPath() +
+                        "/BookingServlet?action=myBookings&error=CancelFailed");
             }
 
-        } else {
-            resp.sendRedirect("bookings.jsp?msg=Unknown+cancel+type");
+        } catch (Exception e) {
+            e.printStackTrace();
+            resp.sendRedirect(req.getContextPath() +
+                    "/BookingServlet?action=myBookings&error=Exception");
         }
-    }
-
-    private boolean isLoggedIn(HttpServletRequest req) {
-        HttpSession session = req.getSession(false);
-        return session != null && session.getAttribute("instId") != null;
     }
 }

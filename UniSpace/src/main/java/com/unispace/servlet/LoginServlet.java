@@ -11,14 +11,23 @@ import java.io.IOException;
 @WebServlet("/LoginServlet")
 public class LoginServlet extends HttpServlet {
 
-    // GET — show the login page
+    // ================= GET =================
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
+
+        HttpSession session = req.getSession(false);
+
+        // If already logged in → go to dashboard
+        if (session != null && session.getAttribute("instId") != null) {
+            resp.sendRedirect(req.getContextPath() + "/DashboardServlet");
+            return;
+        }
+
         req.getRequestDispatcher("/login.jsp").forward(req, resp);
     }
 
-    // POST — process login form submission
+    // ================= POST =================
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
@@ -26,27 +35,32 @@ public class LoginServlet extends HttpServlet {
         String instId = req.getParameter("instId");
 
         if (instId == null || instId.trim().isEmpty()) {
-            req.setAttribute("error", "Please enter your Instructor ID.");
+            req.setAttribute("error", "Enter Instructor ID");
             req.getRequestDispatcher("/login.jsp").forward(req, resp);
             return;
         }
 
         instId = instId.trim().toUpperCase();
+
         InstructorDAO dao = new InstructorDAO();
+        Instructor instructor = dao.validateInstructor(instId);
 
-        // Validate instructor exists in DB
-        if (dao.validateInstructor(instId)) {
-            Instructor instructor = dao.getById(instId);
+        if (instructor != null) {
 
-            // Store in session so all pages can access it
-            HttpSession session = req.getSession();
-            session.setAttribute("instId",     instructor.getId());
-            session.setAttribute("instName",   instructor.getName());
-            session.setAttribute("deptName",   instructor.getDeptName());
+            // ================= SESSION FIXATION FIX =================
+            HttpSession oldSession = req.getSession(false);
+            if (oldSession != null) oldSession.invalidate();
 
-            resp.sendRedirect("dashboard.jsp");
+            HttpSession session = req.getSession(true);
+
+            session.setAttribute("instId", instructor.getId());
+            session.setAttribute("instName", instructor.getName());
+            session.setAttribute("deptName", instructor.getDeptName());
+
+            resp.sendRedirect(req.getContextPath() + "/DashboardServlet");
+
         } else {
-            req.setAttribute("error", "Instructor ID not found. Please try again.");
+            req.setAttribute("error", "Invalid Instructor ID");
             req.getRequestDispatcher("/login.jsp").forward(req, resp);
         }
     }

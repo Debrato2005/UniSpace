@@ -1,22 +1,43 @@
 package com.unispace.dao;
 
+import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.util.Properties;
 
 public class DBConnection {
 
-    private static final String URL      = "jdbc:postgresql://localhost:5432/classroom_booking";
-    private static final String USERNAME = "postgres";
-    private static final String PASSWORD = "#Bengali2356";
+    private static String URL;
+    private static String USERNAME;
+    private static String PASSWORD;
 
     static {
         try {
             Class.forName("org.postgresql.Driver");
-        } catch (ClassNotFoundException e) {
-            throw new RuntimeException(
-                "PostgreSQL JDBC driver not found. Check pom.xml dependency.", e
-            );
+
+            Properties props = new Properties();
+            InputStream input = DBConnection.class
+                    .getClassLoader()
+                    .getResourceAsStream("db.properties");
+
+            if (input == null) {
+                throw new RuntimeException("db.properties not found in resources");
+            }
+
+            props.load(input);
+
+            URL = props.getProperty("db.url");
+            USERNAME = props.getProperty("db.user");
+            PASSWORD = props.getProperty("db.password");
+
+            input.close();
+
+            System.out.println("DB CONNECTED");
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("DB INIT FAILED");
         }
     }
 

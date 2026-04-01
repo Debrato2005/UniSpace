@@ -7,41 +7,70 @@ import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.*;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 @WebServlet("/ScheduleServlet")
 public class ScheduleServlet extends HttpServlet {
 
-    // GET — load schedule for the logged-in instructor
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
 
-        // Guard: must be logged in
-        if (!isLoggedIn(req)) {
-            resp.sendRedirect("login.jsp");
+        // ---------------- AUTH ----------------
+        HttpSession session = req.getSession(false);
+        if (session == null || session.getAttribute("instId") == null) {
+            resp.sendRedirect(req.getContextPath() + "/login.jsp");
             return;
         }
 
-        // Get instId from session (set during login)
-        String instId = (String) req.getSession().getAttribute("instId");
+        String instId = ((String) session.getAttribute("instId")).trim();
 
-        // Allow admins to view any instructor's schedule via ?instId=CS001
+        // ---------------- OPTIONAL ADMIN VIEW (SAFE) ----------------
         String viewId = req.getParameter("instId");
-        if (viewId != null && !viewId.isEmpty()) {
-            instId = viewId.trim().toUpperCase();
+
+        // ⚠️ Only allow override if you explicitly support admin (disabled by default)
+        if (viewId != null && !viewId.trim().isEmpty()) {
+            // You can enable this later with role check
+            // instId = viewId.trim().toUpperCase();
         }
 
-        BookingDAO dao          = new BookingDAO();
-        List<Booking> bookings  = dao.getBookingsByInstructor(instId);
+        // ---------------- FILTERS ----------------
+        String semester = safe(req.getParameter("semester"));
+        String year     = safe(req.getParameter("year"));
+        String day      = safe(req.getParameter("day"));
+        String category = safe(req.getParameter("category"));
 
-        req.setAttribute("bookings",      bookings);
-        req.setAttribute("viewInstId",    instId);
+        BookingDAO dao = new BookingDAO();
+        List<Booking> bookings;
+
+        boolean hasFilters =
+                !semester.isEmpty() ||
+                !year.isEmpty() ||
+                !day.isEmpty() ||
+                !category.isEmpty();
+
+        try {
+            if (hasFilters) {
+                bookings = dao.getFilteredBookings(instId, semester, year, day, category);
+            } else {
+                bookings = dao.getBookingsByInstructor(instId);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            bookings = new ArrayList<>();
+        }
+
+        // ---------------- ATTRIBUTES ----------------
+        req.setAttribute("bookings", bookings);
+        req.setAttribute("viewInstId", instId);
+
+        // ---------------- VIEW ----------------
         req.getRequestDispatcher("/schedule.jsp").forward(req, resp);
     }
 
-    private boolean isLoggedIn(HttpServletRequest req) {
-        HttpSession session = req.getSession(false);
-        return session != null && session.getAttribute("instId") != null;
+    // ---------------- HELPERS ----------------
+    private String safe(String val) {
+        return (val == null) ? "" : val.trim();
     }
 }
